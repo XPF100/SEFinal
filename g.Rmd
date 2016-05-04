@@ -16,7 +16,7 @@ The Webis Crowd Paraphrase Corpus 2011 (Webis-CPC-11) contains 7,859 candidate p
 
 
 ##My Program
-My program does not look for paraphrasing, instead, I am looking for plagiarism of any kind. Therefore, my result vary greatly from the meta data provided. However, using a simple sample of 50 documents, I verified a portion of the findings by hand.
+My program does not look for paraphrasing, instead, I am looking for plagiarism of any kind. Therefore, my result vary greatly from the meta data provided. However, using a simple sample of 50 document sets, I verified a portion of the findings by hand.
 
 
 ##What did not work
