@@ -1,0 +1,99 @@
+---
+title: "Text Reuse in Large Corpora"
+author: "Johnathan Edwards"
+date: "5/4/2016"
+output: pdf_document
+---
+
+
+## The Project Overview
+Plagiarism is a major concern in academia. In recent years there has been an overall increase in the number of
+cases of plagiarism in universities across the country. This is due to an increase in the effectiveness of detection
+capabilities. I am interested in this topic because it can have an impact on research in any field.
+
+##The Data
+The Webis Crowd Paraphrase Corpus 2011 (Webis-CPC-11) contains 7,859 candidate paraphrases obtained from Mechanical Turk crowdsourcing. The corpus is made up of 4,067 accepted paraphrases, 3,792 rejected non-paraphrases, and the original texts. These samples have formed part of PAN 2010 international plagiarism detection competition, but were not previously available separate to rest of the competition data.
+
+
+##My Program
+My program does not look for paraphrasing, instead, I am looking for plagiarism of any kind. Therefore, my result vary greatly from the meta data provided. However, using a simple sample of 50 documents, I verified a portion of the findings by hand.
+
+
+##What did not work
+Working with such a large dataset proved to be very difficult using the NLP package in R. Scaling from a small document term matrix (two documents) for testing to a large document term matrix (greater than 7 , sadly) caused serious time issues despite using multicore methods. Even using an Amazon instance for greater than 100 documents proved too time expensive.
+
+##What did not work
+The parallel package, and in fact, all multi-core packages in R do not work with the Windows operating system. Tring to multi-core on my laptop was not fruitful because my laptop uses a mobile processor.
+
+##How I addressed it
+I created an 8 processor m4.2xl AWS instance of RStudio server. I then snapshotted the storage (10g) and used that to create and attach a new larger storage drive. This allowed me to upload my entire corpus and otehr test files onto the drive through SSH. This reduced my DTM creation time from hours to minutes. Additonally, I changed direction from traditional NLP packages to the TestReuse package. This package allowed me to parallelize my corpus creation and provided methods for me to analyze my data.
+
+##What did not work
+I approached this data set incorrectly. I approached looking for document similarity in an attempt to find plagiarism the issue is that I could not get my meta data for the data set to properly verify my findings. The issue was that the meta data said if there was paraphrasing, not copying. Therefore, I found plagarism that was not necessarily paraphrasing because it may just be a direct quote. The meta data did not account for this.
+
+##How I addressed it
+I, really a friend and I,  verified by sight 100 documents 50 with high scores that indicate documents of high similarity and 50 with low similarity scores. This allowed me to see how my meta data was incorrect.
+
+##Create the minihash and corpus
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(parallel)
+options("mc.cores" = 8L)
+library(textreuse)
+library(dplyr)
+library(NLP)
+library(stringr)
+library(utils)
+load("~/Dropbox/Rcode/workspace.RData")
+ 
+```
+
+```{r, eval=FALSE}
+setwd("~/Dropbox/corpus-webis-cpc-11/")
+minhash <- minhash_generator(200, seed = 235)
+corpus <- TextReuseCorpus(dir = "Webis-CPC-11",
+                        tokenizer = tokenize_ngrams, n = 5,
+                         minhash_func = minhash)
+
+```
+
+##Corpus Creation Result
+```{r, echo=FALSE}
+head(corpus)
+```
+
+
+##Find Candidates
+```{r, eval=FALSE}
+ buckets <- lsh(corpus, bands = 50, progress = TRUE)
+candidates <- lsh_candidates(buckets)
+```
+
+```{r}
+head(candidates)
+```
+
+##Calculating the Scores
+```{r, eval=FALSE}
+scores <- lsh_compare(candidates, corpus, 
+                    jaccard_similarity, progress = TRUE)
+```
+
+```{r}
+head(scores)
+```
+
+
+##Cleaning the Scores
+```{r, eval=FALSE}
+ cleanedScores <-scores %>% 
+      filter(!grepl("original", b)&!grepl("paraphrase", a)) %>%
+      filter(!grepl("metadata", b)&!grepl("metadata", a)) %>%
+      filter(sub("-.*","", a) == sub("-.*","", b))
+  colnames(cleanedScores) <- c("Original", "Suspect", "Score Similarity" )
+```
+
+##Final Scores
+```{r}
+head(cleanedScores)
+```
